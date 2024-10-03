@@ -6,6 +6,7 @@ use Alexusmai\LaravelFileManager\Events\BeforeInitialization;
 use Alexusmai\LaravelFileManager\Events\Deleting;
 use Alexusmai\LaravelFileManager\Events\DirectoryCreated;
 use Alexusmai\LaravelFileManager\Events\DirectoryCreating;
+use Alexusmai\LaravelFileManager\Events\Error;
 use Alexusmai\LaravelFileManager\Events\DiskSelected;
 use Alexusmai\LaravelFileManager\Events\Download;
 use Alexusmai\LaravelFileManager\Events\FileCreated;
@@ -139,12 +140,30 @@ class FileManagerController extends Controller
      */
     public function delete(RequestValidator $request)
     {
-        event(new Deleting($request));
+        $result = event(new Deleting($request));
+
+        if (empty($result)) {
+            $type = $request->input('type') === 'dir' ? "diretório" : "ficheiro";
+
+            return response()->json([
+                'result' => [
+                    'status'  => 'danger',
+                    'message' => "Ocorreu um erro ao tentar apagar o " . $type,
+                ],
+            ]);
+        }
 
         $deleteResponse = $this->fm->delete(
             $request->input('disk'),
             $request->input('items')
         );
+
+        if ($deleteResponse['result']['status'] !== 'success') {
+            $request->merge(['target' => "items"]);
+            $request->merge(['target_id' => $result[0]]);
+            $request->merge(['action' => "delete"]);
+            event(new Error($request));
+        }
 
         return response()->json($deleteResponse);
     }
@@ -178,18 +197,65 @@ class FileManagerController extends Controller
      */
     public function rename(RequestValidator $request)
     {
-        $sanitizedName = str_replace('/', '-', $request->input('newName'));
-        $request->merge(['newName' => $sanitizedName]);
 
-        event(new Rename($request));
+        // Logic to sanitize name
+        $oldSegments = explode('/', $request->input('oldName'));
+        $newSegments = explode('/', $request->input('newName'));
 
-        return response()->json(
-            $this->fm->rename(
-                $request->input('disk'),
-                $request->input('newName'),
-                $request->input('oldName')
-            )
+        $commonSegments = [];
+
+        $diffIndex = null;
+        foreach ($newSegments as $index => $segment) {
+            if (isset($oldSegments[$index]) && $oldSegments[$index] === $segment) {
+                $commonSegments[] = $segment;
+            } else {
+                $diffIndex = $index;
+                break;
+            }
+        }
+
+        if ($diffIndex !== null) {
+            $newName = implode('/', array_slice($newSegments, $diffIndex));
+        }
+
+        $sanitizedName = str_replace('/', '-', $newName);
+
+        $path = implode('/', $commonSegments);
+
+        if (!empty($commonSegments)) {
+            $path = implode('/', $commonSegments) . "/" . $sanitizedName;
+        } else {
+            $path = $sanitizedName;
+        }
+        // End logic to sanitize name
+
+        $request->merge(['newName' => $path]);
+        $result = event(new Rename($request));
+
+        $type = $request->input('type') === 'dir' ? "diretório" : "ficheiro";
+        if (empty($result)) {
+            return response()->json([
+                'result' => [
+                    'status'  => 'danger',
+                    'message' => "Ocorreu um erro ao renomear o " . $type,
+                ],
+            ]);
+        }
+
+        $renameResponse = $this->fm->rename(
+            $request->input('disk'),
+            $request->input('newName'),
+            $request->input('oldName')
         );
+
+        if ($renameResponse['result']['status'] !== 'success') {
+            $request->merge(['target' => $request->input('type')]);
+            $request->merge(['target_id' => $result[0]]);
+            $request->merge(['action' => "rename"]);
+            event(new Error($request));
+        }
+
+        return response()->json($renameResponse);
     }
 
     /**
@@ -270,7 +336,16 @@ class FileManagerController extends Controller
         $sanitizedName = str_replace('/', '-', $request->input('name'));
         $request->merge(['name' => $sanitizedName]);
 
-        event(new DirectoryCreating($request));
+        $result = event(new DirectoryCreating($request));
+
+        if (empty($result)) {
+            return response()->json([
+                'result' => [
+                    'status'  => 'danger',
+                    'message' => "Ocorreu um erro ao criar o diretório",
+                ],
+            ]);
+        }
 
         $createDirectoryResponse = $this->fm->createDirectory(
             $request->input('disk'),
@@ -280,6 +355,11 @@ class FileManagerController extends Controller
 
         if ($createDirectoryResponse['result']['status'] === 'success') {
             event(new DirectoryCreated($request));
+        } else {
+            $request->merge(['target' => "dir"]);
+            $request->merge(['target_id' => $result[0]]);
+            $request->merge(['action' => "create"]);
+            event(new Error($request));
         }
 
         return response()->json($createDirectoryResponse);
@@ -297,7 +377,16 @@ class FileManagerController extends Controller
         $sanitizedName = str_replace('/', '-', $request->input('name'));
         $request->merge(['name' => $sanitizedName]);
 
-        event(new FileCreating($request));
+        $result = event(new FileCreating($request));
+
+        if (empty($result)) {
+            return response()->json([
+                'result' => [
+                    'status'  => 'danger',
+                    'message' => "Ocorreu um erro ao criar o ficheiro",
+                ],
+            ]);
+        }
 
         $createFileResponse = $this->fm->createFile(
             $request->input('disk'),
@@ -307,6 +396,11 @@ class FileManagerController extends Controller
 
         if ($createFileResponse['result']['status'] === 'success') {
             event(new FileCreated($request));
+        } else {
+            $request->merge(['target' => "file"]);
+            $request->merge(['target_id' => $result[0]]);
+            $request->merge(['action' => "create"]);
+            event(new Error($request));
         }
 
         return response()->json($createFileResponse);
