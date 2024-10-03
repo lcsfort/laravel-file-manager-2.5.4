@@ -202,30 +202,29 @@ class FileManagerController extends Controller
         $oldSegments = explode('/', $request->input('oldName'));
         $newSegments = explode('/', $request->input('newName'));
 
-        $commonSegments = [];
+        $path = null;
 
-        $diffIndex = null;
-        foreach ($newSegments as $index => $segment) {
-            if (isset($oldSegments[$index]) && $oldSegments[$index] === $segment) {
-                $commonSegments[] = $segment;
-            } else {
-                $diffIndex = $index;
-                break;
-            }
-        }
-
-        if ($diffIndex !== null) {
-            $newName = implode('/', array_slice($newSegments, $diffIndex));
-        }
-
-        $sanitizedName = str_replace('/', '-', $newName);
-
-        $path = implode('/', $commonSegments);
-
-        if (!empty($commonSegments)) {
-            $path = implode('/', $commonSegments) . "/" . $sanitizedName;
+        if (count($newSegments) === count($oldSegments)) {
+            $path = $request->input('newName');
         } else {
-            $path = $sanitizedName;
+            $diffCount = count($newSegments) - count($oldSegments) + 1;
+            $commonPartsCount = count($newSegments) - $diffCount;
+            $commonSegments = [];
+
+            for ($i = 0; $i < $commonPartsCount; $i++) {
+                $commonSegments[] = $oldSegments[$i];
+            }
+
+            $diffSegments = array_slice($newSegments, $commonPartsCount);
+            $newName = implode('/', $diffSegments);
+
+            $sanitizedName = str_replace('/', '-', $newName);
+
+            if (!empty($commonSegments)) {
+                $path = implode('/', $commonSegments) . "/" . $sanitizedName;
+            } else {
+                $path = $sanitizedName;
+            }
         }
         // End logic to sanitize name
 
@@ -233,6 +232,7 @@ class FileManagerController extends Controller
         $result = event(new Rename($request));
 
         $type = $request->input('type') === 'dir' ? "diretório" : "ficheiro";
+
         if (empty($result)) {
             return response()->json([
                 'result' => [
