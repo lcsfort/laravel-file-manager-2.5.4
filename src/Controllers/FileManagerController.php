@@ -158,12 +158,12 @@ class FileManagerController extends Controller
             $request->input('items')
         );
 
-        if ($deleteResponse['result']['status'] !== 'success') {
-            $request->merge(['target' => "items"]);
-            $request->merge(['target_id' => $result[0]]);
-            $request->merge(['action' => "delete"]);
-            event(new Error($request));
-        }
+        // if ($deleteResponse['result']['status'] !== 'success') {
+        //     $request->merge(['target' => "items"]);
+        //     $request->merge(['target_id' => $result[0]]);
+        //     $request->merge(['action' => "delete"]);
+        //     event(new Error($request));
+        // }
 
         return response()->json($deleteResponse);
     }
@@ -246,12 +246,12 @@ class FileManagerController extends Controller
             $request->input('oldName')
         );
 
-        if ($renameResponse['result']['status'] !== 'success') {
-            $request->merge(['target' => $request->input('type')]);
-            $request->merge(['target_id' => $result[0]]);
-            $request->merge(['action' => "rename"]);
-            event(new Error($request));
-        }
+        // if ($renameResponse['result']['status'] !== 'success') {
+        //     $request->merge(['target' => $request->input('type')]);
+        //     $request->merge(['target_id' => $result[0]]);
+        //     $request->merge(['action' => "rename"]);
+        //     event(new Error($request));
+        // }
 
         return response()->json($renameResponse);
     }
@@ -353,12 +353,13 @@ class FileManagerController extends Controller
 
         if ($createDirectoryResponse['result']['status'] === 'success') {
             event(new DirectoryCreated($request));
-        } else {
-            $request->merge(['target' => "dir"]);
-            $request->merge(['target_id' => $result[0]]);
-            $request->merge(['action' => "create"]);
-            event(new Error($request));
-        }
+        } 
+        // else {
+        //     $request->merge(['target' => "dir"]);
+        //     $request->merge(['target_id' => $result[0]]);
+        //     $request->merge(['action' => "create"]);
+        //     event(new Error($request));
+        // }
 
         return response()->json($createDirectoryResponse);
     }
@@ -394,12 +395,13 @@ class FileManagerController extends Controller
 
         if ($createFileResponse['result']['status'] === 'success') {
             event(new FileCreated($request));
-        } else {
-            $request->merge(['target' => "file"]);
-            $request->merge(['target_id' => $result[0]]);
-            $request->merge(['action' => "create"]);
-            event(new Error($request));
         }
+        // else {
+        //     $request->merge(['target' => "file"]);
+        //     $request->merge(['target_id' => $result[0]]);
+        //     $request->merge(['action' => "create"]);
+        //     event(new Error($request));
+        // }
 
         return response()->json($createFileResponse);
     }
