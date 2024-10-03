@@ -216,9 +216,7 @@ class FileManagerController extends Controller
             }
 
             $diffSegments = array_slice($newSegments, $commonPartsCount);
-            $newName = implode('/', $diffSegments);
-
-            $sanitizedName = str_replace('/', '-', $newName);
+            $sanitizedName = implode('-', $diffSegments);
 
             if (!empty($commonSegments)) {
                 $path = implode('/', $commonSegments) . "/" . $sanitizedName;
