@@ -6,7 +6,6 @@ use Alexusmai\LaravelFileManager\Events\BeforeInitialization;
 use Alexusmai\LaravelFileManager\Events\Deleting;
 use Alexusmai\LaravelFileManager\Events\DirectoryCreated;
 use Alexusmai\LaravelFileManager\Events\DirectoryCreating;
-use Alexusmai\LaravelFileManager\Events\Error;
 use Alexusmai\LaravelFileManager\Events\DiskSelected;
 use Alexusmai\LaravelFileManager\Events\Download;
 use Alexusmai\LaravelFileManager\Events\FileCreated;
@@ -334,16 +333,7 @@ class FileManagerController extends Controller
         $sanitizedName = str_replace('/', '-', $request->input('name'));
         $request->merge(['name' => $sanitizedName]);
 
-        $result = event(new DirectoryCreating($request));
-
-        if (empty($result)) {
-            return response()->json([
-                'result' => [
-                    'status'  => 'danger',
-                    'message' => "Ocorreu um erro ao criar o diretório",
-                ],
-            ]);
-        }
+        event(new DirectoryCreating($request));
 
         $createDirectoryResponse = $this->fm->createDirectory(
             $request->input('disk'),
@@ -353,13 +343,7 @@ class FileManagerController extends Controller
 
         if ($createDirectoryResponse['result']['status'] === 'success') {
             event(new DirectoryCreated($request));
-        } 
-        // else {
-        //     $request->merge(['target' => "dir"]);
-        //     $request->merge(['target_id' => $result[0]]);
-        //     $request->merge(['action' => "create"]);
-        //     event(new Error($request));
-        // }
+        }
 
         return response()->json($createDirectoryResponse);
     }
@@ -376,16 +360,7 @@ class FileManagerController extends Controller
         $sanitizedName = str_replace('/', '-', $request->input('name'));
         $request->merge(['name' => $sanitizedName]);
 
-        $result = event(new FileCreating($request));
-
-        if (empty($result)) {
-            return response()->json([
-                'result' => [
-                    'status'  => 'danger',
-                    'message' => "Ocorreu um erro ao criar o ficheiro",
-                ],
-            ]);
-        }
+        event(new FileCreating($request));
 
         $createFileResponse = $this->fm->createFile(
             $request->input('disk'),
@@ -396,12 +371,6 @@ class FileManagerController extends Controller
         if ($createFileResponse['result']['status'] === 'success') {
             event(new FileCreated($request));
         }
-        // else {
-        //     $request->merge(['target' => "file"]);
-        //     $request->merge(['target_id' => $result[0]]);
-        //     $request->merge(['action' => "create"]);
-        //     event(new Error($request));
-        // }
 
         return response()->json($createFileResponse);
     }
